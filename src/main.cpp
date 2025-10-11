@@ -1,6 +1,15 @@
-#include <cstdio>
+#include "MattDaemon.hpp"
+#include <iostream>
 
 int main() {
-    printf("Hello, Matt_daemon!\n");
+    MattDaemon daemon;
+    
+    if (!daemon.initialize()) {
+        std::cerr << "Failed to initialize MattDaemon" << std::endl;
+        return 1;
+    }
+    
+    daemon.run();
+    
     return 0;
 }
