@@ -15,7 +15,7 @@ fi
 cleanup() {
     echo "🧹 Cleaning up..."
     pkill -TERM MattDaemon 2>/dev/null
-    rm -f /tmp/matt_daemon.lock 2>/dev/null
+    rm -f /var/lock/matt_daemon.lock 2>/dev/null
     sleep 2
 }
 
@@ -38,9 +38,9 @@ fi
 echo "✅ Daemon started with PID: $DAEMON_PID"
 
 # Check lock file
-if [ -f "/tmp/matt_daemon.lock" ]; then
-    echo "✅ Lock file created: /tmp/matt_daemon.lock"
-    echo "   Content: $(cat /tmp/matt_daemon.lock)"
+if [ -f "/var/lock/matt_daemon.lock" ]; then
+    echo "✅ Lock file created: /var/lock/matt_daemon.lock"
+    echo "   Content: $(cat /var/lock/matt_daemon.lock)"
 else
     echo "❌ Lock file not found"
 fi
@@ -87,11 +87,11 @@ else
 fi
 
 # Check lock file cleanup
-if [ ! -f "/tmp/matt_daemon.lock" ]; then
+if [ ! -f "/var/lock/matt_daemon.lock" ]; then
     echo "✅ Lock file cleaned up"
 else
     echo "❌ Lock file still exists"
-    rm -f /tmp/matt_daemon.lock
+    rm -f /var/lock/matt_daemon.lock
 fi
 
 # Show final log entries

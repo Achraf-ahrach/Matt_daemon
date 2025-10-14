@@ -1,5 +1,3 @@
-NAME = MattDaemon
-
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++11 -pthread
 INCLUDES = -I./include
@@ -8,14 +6,27 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = include
 
-SOURCES = $(wildcard $(SRCDIR)/*.cpp)
-OBJECTS = $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
+# Target executables
+SERVER = server
+CLIENT = client
 
-all: $(NAME)
+# Source files
+SERVER_SRC = $(SRCDIR)/server.cpp
+CLIENT_SRC = $(SRCDIR)/client.cpp
 
-$(NAME): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(NAME)
-	@echo "✅ $(NAME) compiled successfully"
+# Object files
+SERVER_OBJ = $(OBJDIR)/server.o
+CLIENT_OBJ = $(OBJDIR)/client.o
+
+all: $(SERVER) $(CLIENT)
+
+$(SERVER): $(SERVER_OBJ) | $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(SERVER_OBJ) -o $(SERVER)
+	@echo "✅ Server compiled"
+
+$(CLIENT): $(CLIENT_OBJ) | $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(CLIENT_OBJ) -o $(CLIENT)
+	@echo "✅ Client compiled"
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
@@ -25,32 +36,18 @@ $(OBJDIR):
 
 clean:
 	rm -rf $(OBJDIR)
-	@echo "🧹 Object files cleaned"
+	rm -f $(SERVER) $(CLIENT) server.log
+	@echo "🧹 Cleaned"
 
 fclean: clean
-	rm -f $(NAME) client_test
-	@echo "🧹 Executable cleaned"
 
 re: fclean all
 
-install: $(NAME)
-	@echo "📦 Installing $(NAME)..."
-	sudo cp $(NAME) /usr/local/bin/
-	@echo "✅ $(NAME) installed to /usr/local/bin/"
+test: $(SERVER) $(CLIENT)
+	@echo "🧪 Testing simple server..."
+	@echo "1. Start server: ./$(SERVER)"
+	@echo "2. Test client: ./$(CLIENT) \"Hello\""
+	@echo "3. Check logs: cat server.log"
+	@echo "4. Stop server: pkill $(SERVER)"
 
-uninstall:
-	@echo "🗑️  Uninstalling $(NAME)..."
-	sudo rm -f /usr/local/bin/$(NAME)
-	@echo "✅ $(NAME) uninstalled"
-
-client_test: client_test.cpp
-	$(CXX) $(CXXFLAGS) client_test.cpp -o client_test
-	@echo "✅ Client test program compiled"
-
-test: $(NAME)
-	@echo "🧪 Testing $(NAME)..."
-	@echo "Note: Run 'sudo ./$(NAME)' to start the daemon"
-	@echo "Use 'telnet localhost 4242' to connect and test"
-	@echo "Or compile and use: make client_test && ./client_test \"your message\""
-
-.PHONY: all clean fclean re install uninstall test client_test
+.PHONY: all clean fclean re test
