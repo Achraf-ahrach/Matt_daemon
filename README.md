@@ -96,23 +96,82 @@ telnet localhost 9999
 ## Log Format
 
 ```
-[ DD / MM / YYYY - HH : MM : SS ] [LEVEL] Message
+# MattDaemon - Simple Version
+
+A simplified UNIX daemon implementation in C++ that meets all the specified requirements with minimal code.
+
+## Features 
+
+- **Executable named MattDaemon**
+- **Root privileges required** (must run with sudo)
+- **Runs in background** (proper daemon process)
+- **Listens on port 4242**
+- **Tintin_reporter class** for logging
+- **Timestamped logs** in format `[ DD / MM / YYYY - HH : MM : SS ]`
+- **Log location**: `/var/log/matt_daemon/matt_daemon.log`
+- **Single instance only** with lock file `/var/lock/matt_daemon.lock`
+- **Lock file error message** when attempting second instance
+- **Lock file cleanup** on shutdown
+- **Quit command** via socket to stop daemon
+- **Message logging** for all other input
+- **Maximum 3 clients** simultaneously
+- **Signal handling** with logging (SIGTERM, SIGINT, SIGQUIT, SIGUSR1, SIGUSR2)
+
+## Files (Simplified!)
+
+```
+matt-daemon/
+├── include/
+│   └── Tintin_reporter.hpp  # Simple logging class (header-only)
+├── src/
+│   └── main.cpp            # All daemon functionality in one file
+├── Makefile                # Simple build
+├── client_test.cpp         # Test client
+└── test_daemon.sh          # Test script
 ```
 
-**Log Levels:**
-- `[INFO]` - Server events (start, stop, connections)
-- `[MESSAGE]` - Client messages
-- `[WARNING]` - Rejected connections (max clients reached)
+## Building
 
-## Differences from Full MattDaemon
+```bash
+make                    # Compile MattDaemon
+make client            # Compile test client (optional)
+make clean             # Clean up
+```
 
-| Feature | Simple Server | Full MattDaemon |
-|---------|---------------|-----------------|
-| Root privileges | Not required | Required |
-| Lock file | No | Yes (/var/lock/) |
-| System logging | Local file | /var/log/matt_daemon/ |
-| Signal handling | Basic | Comprehensive |
-| Port | 9999 | 4242 |
-| Daemonization | Simple fork | Full daemon process |
+## Usage
 
-This simplified version is perfect for testing and development without requiring system-level privileges.
+```bash
+# Start daemon (requires root)
+sudo ./MattDaemon
+
+# Connect and test
+telnet localhost 4242
+# or
+./client_test "Hello daemon!"
+
+# Send quit to stop
+echo "quit" | telnet localhost 4242
+
+# Check logs
+sudo cat /var/log/matt_daemon/matt_daemon.log
+```
+
+## Testing
+
+```bash
+sudo ./test_daemon.sh   # Automated test
+```
+
+## Code Structure
+
+- **Total lines**: ~200 (vs 500+ in complex version)
+- **Files**: 2 source files (vs 6+ in complex version)
+- **Classes**: 1 simple static class (vs multiple complex classes)
+- **Dependencies**: Minimal standard library only
+
+The implementation uses:
+- Fork-based daemonization (double fork)
+- Simple process-based client handling (no threads)
+- Static logging class with inline implementation
+- Direct system calls for simplicity
+- Minimal error handling but covers all requirements
