@@ -8,6 +8,7 @@
 #include <sstream>
 #include <ctime>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 class Tintin_reporter {
 private:
@@ -17,17 +18,17 @@ private:
         std::time_t now = std::time(nullptr);
         std::tm* t = std::localtime(&now);
         std::ostringstream oss;
-        oss << "[ " << std::setfill('0') << std::setw(2) << t->tm_mday
-            << " / " << std::setw(2) << (t->tm_mon + 1)
-            << " / " << (t->tm_year + 1900)
-            << " - " << std::setw(2) << t->tm_hour
-            << " : " << std::setw(2) << t->tm_min
-            << " : " << std::setw(2) << t->tm_sec << " ]";
+        oss << "[" << std::setfill('0') << std::setw(2) << t->tm_mday
+            << "/" << std::setw(2) << (t->tm_mon + 1)
+            << "/" << (t->tm_year + 1900)
+            << "-" << std::setw(2) << t->tm_hour
+            << ":" << std::setw(2) << t->tm_min
+            << ":" << std::setw(2) << t->tm_sec << "]";
         return oss.str();
     }
     
     void ensureLogDirectory() const {
-        system("mkdir -p /var/log/matt_daemon");
+        mkdir("/var/log/matt_daemon", 0755);
     }
 
 public:
@@ -58,6 +59,7 @@ public:
         std::ofstream file(logPath.c_str(), std::ios::app);
         if (file.is_open()) {
             file << getCurrentTimestamp() << " " << message << std::endl;
+            file.close();
         }
     }
     
