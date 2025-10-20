@@ -215,6 +215,8 @@ int main() {
             
             if (activeClients >= MAX_CLIENTS) {
                 Tintin_reporter::log("[ WARNING ] - Matt_daemon: Maximum clients reached, connection rejected.");
+                const char* msg = "Server full: Maximum 3 clients allowed. Connection closed.\n";
+                send(clientSock, msg, strlen(msg), MSG_NOSIGNAL);
                 close(clientSock);
                 continue;
             }
