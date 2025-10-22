@@ -3,6 +3,7 @@ Matt_daemon
 bin/
 *.out
 *.o
+obj/
 
 # Build artifacts
 build/

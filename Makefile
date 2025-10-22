@@ -5,10 +5,27 @@ INCLUDES = -I./include
 NAME = MattDaemon
 CLIENT_TEST = client_test
 
+# Source files
+SRC_DIR = src
+SRCS = $(SRC_DIR)/main.cpp
+
+# Object files
+OBJ_DIR = obj
+OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+
 all: $(NAME)
 
-$(NAME): src/main.cpp include/Tintin_reporter.hpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) src/main.cpp -o $(NAME)
+# Create object directory
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+# Compile object files
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Link executable
+$(NAME): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
 	@echo "MattDaemon compiled successfully"
 
 client: $(CLIENT_TEST)
@@ -18,7 +35,8 @@ $(CLIENT_TEST): client_test.cpp
 	@echo "Client test compiled successfully"
 
 clean:
-	@echo "Nothing to clean (no object files)"
+	rm -rf $(OBJ_DIR)
+	@echo "Object files cleaned"
 
 fclean: clean
 	rm -f $(NAME) $(CLIENT_TEST)
@@ -26,4 +44,5 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re client
+
