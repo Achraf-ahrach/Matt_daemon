@@ -17,16 +17,12 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#define LOCK_FILE "/var/lock/matt_daemon.lock"
-#define PORT 4242
-#define MAX_CLIENTS 3
-
 bool running = true;
 int serverSocket = -1;
 int lockFd = -1;
 
 void cleanup() {
-    Tintin_reporter::log("[ INFO ] - Matt_daemon: Quitting.");
+    Tintin_reporter::log(INFO, "Matt_daemon: Quitting.");
     if (serverSocket >= 0) {
         close(serverSocket);
     }
@@ -47,7 +43,7 @@ void signalHandler(int sig) {
         default: sigName = "UNKNOWN"; break;
     }
     
-    Tintin_reporter::log("[ INFO ] - Matt_daemon: Signal handler.");
+    Tintin_reporter::log(INFO, "Matt_daemon: Signal handler.");
     running = false;
 }
 
@@ -55,14 +51,14 @@ bool createLockFile() {
     lockFd = open(LOCK_FILE, O_CREAT | O_RDWR, 0644);
     if (lockFd < 0) {
         std::cerr << "Can't open :" << LOCK_FILE << std::endl;
-        Tintin_reporter::log("[ ERROR ] - Matt_daemon: Error file locked.");
+        Tintin_reporter::log(ERROR, "Matt_daemon: Error file locked.");
         return false;
     }
     
     // Try to acquire exclusive lock
     if (flock(lockFd, LOCK_EX | LOCK_NB) < 0) {
         std::cerr << "Can't open :" << LOCK_FILE << std::endl;
-        Tintin_reporter::log("[ ERROR ] - Matt_daemon: Error file locked.");
+        Tintin_reporter::log(ERROR, "Matt_daemon: Error file locked.");
         close(lockFd);
         lockFd = -1;
         return false;
@@ -121,20 +117,20 @@ int main() {
         return 1;
     }
     
-    Tintin_reporter::log("[ INFO ] - Matt_daemon: Started.");
+    Tintin_reporter::log(INFO, "Matt_daemon: Started.");
     
     // Create lock file (before daemonizing for error reporting)
     if (!createLockFile()) {
-        Tintin_reporter::log("[ INFO ] - Matt_daemon: Quitting.");
+        Tintin_reporter::log(INFO, "Matt_daemon: Quitting.");
         return 1;
     }
     
-    Tintin_reporter::log("[ INFO ] - Matt_daemon: Creating server.");
+    Tintin_reporter::log(INFO, "Matt_daemon: Creating server.");
     
     // Create socket
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket < 0) {
-        Tintin_reporter::log("[ ERROR ] - Matt_daemon: Cannot create socket.");
+        Tintin_reporter::log(ERROR, "Matt_daemon: Cannot create socket.");
         cleanup();
         return 1;
     }
@@ -149,19 +145,19 @@ int main() {
     addr.sin_port = htons(PORT);
     
     if (bind(serverSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        Tintin_reporter::log("[ ERROR ] - Matt_daemon: Cannot bind to port 4242.");
+        Tintin_reporter::log(ERROR, "Matt_daemon: Cannot bind to port 4242.");
         cleanup();
         return 1;
     }
     
     if (listen(serverSocket, MAX_CLIENTS) < 0) {
-        Tintin_reporter::log("[ ERROR ] - Matt_daemon: Cannot listen on socket.");
+        Tintin_reporter::log(ERROR, "Matt_daemon: Cannot listen on socket.");
         cleanup();
         return 1;
     }
     
-    Tintin_reporter::log("[ INFO ] - Matt_daemon: Server created.");
-    Tintin_reporter::log("[ INFO ] - Matt_daemon: Entering Daemon mode.");
+    Tintin_reporter::log(INFO, "Matt_daemon: Server created.");
+    Tintin_reporter::log(INFO, "Matt_daemon: Entering Daemon mode.");
     
     // Daemonize the process
     daemonize();
@@ -175,8 +171,8 @@ int main() {
     }
     
     std::stringstream ss;
-    ss << "[ INFO ] - Matt_daemon: started. PID: " << getpid() << ".";
-    Tintin_reporter::log(ss.str());
+    ss << "Matt_daemon: started. PID: " << getpid() << ".";
+    Tintin_reporter::log(INFO, ss.str());
     
     // Setup signal handlers
     signal(SIGTERM, signalHandler);
@@ -214,7 +210,7 @@ int main() {
             }
             
             if (activeClients >= MAX_CLIENTS) {
-                Tintin_reporter::log("[ WARNING ] - Matt_daemon: Maximum clients reached, connection rejected.");
+                Tintin_reporter::log(ERROR, "Matt_daemon: Maximum clients reached, connection rejected.");
                 const char* msg = "Server full: Maximum 3 clients allowed. Connection closed.\n";
                 send(clientSock, msg, strlen(msg), MSG_NOSIGNAL);
                 close(clientSock);
@@ -243,13 +239,13 @@ int main() {
                     
                     if (!msg.empty()) {
                         if (msg == "quit") {
-                            Tintin_reporter::log("[ INFO ] - Matt_daemon: Request quit.");
+                            Tintin_reporter::log(INFO, "Matt_daemon: Request quit.");
                             close(clientSock);
                             // Signal parent to quit
                             kill(getppid(), SIGTERM);
                             exit(0);
                         } else {
-                            Tintin_reporter::log("[ LOG ] - Matt_daemon: User input: " + msg);
+                            Tintin_reporter::log(LOG, "Matt_daemon: User input: " + msg);
                         }
                     }
                 }

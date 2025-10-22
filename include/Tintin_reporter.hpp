@@ -10,10 +10,22 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define LOCK_FILE "/var/lock/matt_daemon.lock"
+#define PORT 4242
+#define MAX_CLIENTS 3
+
+enum level {
+    ERROR,
+    LOG,
+    INFO
+};
+#define BASE_PATH  "/var/log/matt_daemon"
+#define ERROR_PATH  "/var/log/matt_daemon/Error.log"
+#define LOG_PATH  "/var/log/matt_daemon/Log.log"
+#define INFO_PATH  "/var/log/matt_daemon/Info.log"
+
 class Tintin_reporter {
 private:
-    std::string logPath;
-    
     std::string getCurrentTimestamp() const {
         std::time_t now = std::time(nullptr);
         std::tm* t = std::localtime(&now);
@@ -28,39 +40,71 @@ private:
     }
     
     void ensureLogDirectory() const {
-        mkdir("/var/log/matt_daemon", 0755);
+        mkdir(BASE_PATH, 0755);
+    }
+    
+    const char* getLogPath(level logLevel) const {
+        switch (logLevel) {
+            case ERROR:
+                return ERROR_PATH;
+            case LOG:
+                return LOG_PATH;
+            case INFO:
+                return INFO_PATH;
+            default:
+                return LOG_PATH;
+        }
+    }
+    
+    std::string getLevelString(level logLevel) const {
+        switch (logLevel) {
+            case ERROR:
+                return "[ ERROR ]";
+            case LOG:
+                return "[ LOG ]";
+            case INFO:
+                return "[ INFO ]";
+            default:
+                return "[ LOG ]";
+        }
     }
 
 public:
     // Coplien form (Orthodox Canonical Class Form)
     
     // Default constructor
-    Tintin_reporter(const std::string& logFile = "/var/log/matt_daemon/matt_daemon.log") 
-        : logPath(logFile) {
+    Tintin_reporter() {
         ensureLogDirectory();
     }
     
     // Copy constructor
-    Tintin_reporter(const Tintin_reporter& other) : logPath(other.logPath) {}
+    Tintin_reporter(const Tintin_reporter& other) {
+        (void)other;
+    }
     
     // Assignment operator
     Tintin_reporter& operator=(const Tintin_reporter& other) {
-        if (this != &other) {
-            logPath = other.logPath;
-        }
+        (void)other;
         return *this;
     }
     
     // Destructor
     ~Tintin_reporter() {}
     
-    // Logging methods
-    void writeLog(const std::string& message) const {
-        std::ofstream file(logPath.c_str(), std::ios::app);
+    // Logging methods with level support
+    void writeLog(level logLevel, const std::string& message) const {
+        const char* logPath = getLogPath(logLevel);
+        std::ofstream file(logPath, std::ios::app);
         if (file.is_open()) {
-            file << getCurrentTimestamp() << " " << message << std::endl;
+            file << getCurrentTimestamp() << " " << getLevelString(logLevel) 
+                 << " - " << message << std::endl;
             file.close();
         }
+    }
+    
+    // Backward compatibility method (defaults to LOG level)
+    void writeLog(const std::string& message) const {
+        writeLog(LOG, message);
     }
     
     // Static instance for easy access
@@ -69,9 +113,14 @@ public:
         return instance;
     }
     
-    // Static convenience method
+    // Static convenience methods with log levels
+    static void log(level logLevel, const std::string& message) {
+        getInstance().writeLog(logLevel, message);
+    }
+    
+    // Static convenience method (backward compatibility, defaults to LOG)
     static void log(const std::string& message) {
-        getInstance().writeLog(message);
+        getInstance().writeLog(LOG, message);
     }
 };
 
