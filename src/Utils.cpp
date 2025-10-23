@@ -9,16 +9,25 @@
 #include <cstring>
 
 void Utils::sendExitEmail(const std::string& reason, const std::string& clientInfo) {
+    const char* emailFrom = std::getenv("MATT_EMAIL_FROM");
+    const char* emailPass = std::getenv("MATT_EMAIL_PASS");
+    const char* emailTo   = std::getenv("MATT_EMAIL_TO");
+
+    if (!emailFrom || !emailPass || !emailTo) {
+        Tintin_reporter::log(ERROR, "Missing email environment variables (MATT_EMAIL_FROM, MATT_EMAIL_PASS, MATT_EMAIL_TO).");
+        return;
+    }
+
     std::time_t now = std::time(nullptr);
-    now += 3600; // add +1 hour (sa3a jdida)
+    now += 3600; // add +1 hour (for local time adjustment)
 
     char timestamp[100];
     std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
     
     std::ofstream emailFile("/tmp/matt_daemon_email.txt");
     if (emailFile.is_open()) {
-        emailFile << "From: Matt Daemon <achrafahrach44@gmail.com>\n";
-        emailFile << "To: <achrafahrach44@gmail.com>\n";
+        emailFile << "From: Matt Daemon <" << emailFrom << ">\n";
+        emailFile << "To: <" << emailTo << ">\n";
         emailFile << "Subject: Matt_daemon Client Exit Notification\n\n";
         emailFile << "A client has disconnected from Matt_daemon.\n";
         emailFile << "Timestamp: " << timestamp << "\n";
@@ -32,12 +41,13 @@ void Utils::sendExitEmail(const std::string& reason, const std::string& clientIn
         
         pid_t emailPid = fork();
         if (emailPid == 0) {
+            std::string userAuth = std::string(emailFrom) + ":" + emailPass;
             execl("/usr/bin/curl", "curl",
                 "--url", "smtps://smtp.gmail.com:465",
                 "--ssl-reqd",
-                "--mail-from", "achrafahrach44@gmail.com",
-                "--mail-rcpt", "achrafahrach44@gmail.com",
-                "--user", "achrafahrach44@gmail.com:myhh aaxy qual heup",
+                "--mail-from", emailFrom,
+                "--mail-rcpt", emailTo,
+                "--user", userAuth.c_str(),
                 "--upload-file", "/tmp/matt_daemon_email.txt",
                 (char*)NULL
             );
@@ -45,6 +55,8 @@ void Utils::sendExitEmail(const std::string& reason, const std::string& clientIn
         } else if (emailPid > 0) {
             waitpid(emailPid, NULL, WNOHANG);
         }
+    } else {
+        Tintin_reporter::log(ERROR, "Failed to open /tmp/matt_daemon_email.txt for writing.");
     }
 }
 
