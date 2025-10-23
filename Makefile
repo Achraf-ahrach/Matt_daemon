@@ -12,7 +12,8 @@ SRCS = $(SRC_DIR)/main.cpp \
        $(SRC_DIR)/Server.cpp \
        $(SRC_DIR)/Client.cpp \
        $(SRC_DIR)/Utils.cpp \
-	   $(SRC_DIR)/Tintin_reporter.cpp
+	   $(SRC_DIR)/Tintin_reporter.cpp \
+	   $(SRC_DIR)/ShellCommands.cpp
 
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
