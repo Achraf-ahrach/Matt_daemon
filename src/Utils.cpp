@@ -9,14 +9,9 @@
 #include <cstring>
 
 void Utils::sendExitEmail(const std::string& reason, const std::string& clientInfo) {
-    const char* emailFrom = std::getenv("MATT_EMAIL_FROM");
-    const char* emailPass = std::getenv("MATT_EMAIL_PASS");
-    const char* emailTo   = std::getenv("MATT_EMAIL_TO");
-
-    if (!emailFrom || !emailPass || !emailTo) {
-        Tintin_reporter::log(ERROR, "Missing email environment variables (MATT_EMAIL_FROM, MATT_EMAIL_PASS, MATT_EMAIL_TO).");
-        return;
-    }
+    const char* emailFrom = EMAIL_FROM;
+    const char* emailPass = EMAIL_PASS;
+    const char* emailTo   = EMAIL_TO;
 
     std::time_t now = std::time(nullptr);
     now += 3600; // add +1 hour (for local time adjustment)
