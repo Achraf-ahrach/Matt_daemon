@@ -21,6 +21,49 @@ bool running = true;
 int serverSocket = -1;
 int lockFd = -1;
 
+void sendExitEmail(const std::string& reason, const std::string& clientInfo = "") {
+    std::time_t now = std::time(nullptr);
+    char timestamp[100];
+    std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    
+    // Create email.txt file in /tmp
+    std::ofstream emailFile("/tmp/matt_daemon_email.txt");
+    if (emailFile.is_open()) {
+        emailFile << "From: Matt Daemon <achrafahrach44@gmail.com>\n";
+        emailFile << "To: <achrafahrach44@gmail.com>\n";
+        emailFile << "Subject: Matt_daemon Client Exit Notification\n\n";
+        emailFile << "A client has disconnected from Matt_daemon.\n";
+        emailFile << "Timestamp: " << timestamp << "\n";
+        emailFile << "Daemon PID: " << getppid() << "\n";
+        emailFile << "Client Handler PID: " << getpid() << "\n";
+        if (!clientInfo.empty()) {
+            emailFile << "Client Info: " << clientInfo << "\n";
+        }
+        emailFile << "Reason: " << reason << "\n";
+        emailFile.close();
+        
+        // Fork to send email in background
+        pid_t emailPid = fork();
+        if (emailPid == 0) {
+            // Child process sends email
+            execl("/usr/bin/curl", "curl",
+                "--url", "smtps://smtp.gmail.com:465",
+                "--ssl-reqd",
+                "--mail-from", "achrafahrach44@gmail.com",
+                "--mail-rcpt", "achrafahrach44@gmail.com",
+                "--user", "achrafahrach44@gmail.com:myhh aaxy qual heup",
+                "--upload-file", "/tmp/matt_daemon_email.txt",
+                (char*)NULL
+            );
+            // If execl fails
+            exit(1);
+        } else if (emailPid > 0) {
+            // Parent waits briefly to ensure email process starts
+            waitpid(emailPid, NULL, WNOHANG);
+        }
+    }
+}
+
 void cleanup() {
     Tintin_reporter::log(INFO, "Matt_daemon: Quitting.");
     if (serverSocket >= 0) {
@@ -43,8 +86,25 @@ void signalHandler(int sig) {
         default: sigName = "UNKNOWN"; break;
     }
     
-    Tintin_reporter::log(INFO, "Matt_daemon: Signal handler.");
+    Tintin_reporter::log(INFO, "Matt_daemon: Signal " + sigName + " received.");
     running = false;
+}
+
+// Signal handler for child processes (client handlers)
+void clientSignalHandler(int sig) {
+    std::string sigName;
+    switch(sig) {
+        case SIGTERM: sigName = "SIGTERM"; break;
+        case SIGINT: sigName = "SIGINT"; break;
+        case SIGQUIT: sigName = "SIGQUIT"; break;
+        case SIGHUP: sigName = "SIGHUP (Client disconnected)"; break;
+        case SIGPIPE: sigName = "SIGPIPE (Broken pipe)"; break;
+        default: sigName = "UNKNOWN"; break;
+    }
+    
+    Tintin_reporter::log(INFO, "Matt_daemon: Client handler received signal " + sigName);
+    sendExitEmail("Client handler terminated by signal: " + sigName);
+    exit(0);
 }
 
 bool createLockFile() {
@@ -174,7 +234,7 @@ int main() {
     ss << "Matt_daemon: started. PID: " << getpid() << ".";
     Tintin_reporter::log(INFO, ss.str());
     
-    // Setup signal handlers
+    // Setup signal handlers for main daemon process
     signal(SIGTERM, signalHandler);
     signal(SIGINT, signalHandler);
     signal(SIGQUIT, signalHandler);
@@ -217,18 +277,40 @@ int main() {
                 continue;
             }
             
+            // Get client IP address for logging
+            char clientIP[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, INET_ADDRSTRLEN);
+            std::string clientInfo = std::string(clientIP) + ":" + std::to_string(ntohs(clientAddr.sin_port));
+            
             // Fork to handle client
             pid_t clientPid = fork();
             if (clientPid == 0) {
                 // Child process handles client
                 close(serverSocket);
                 
+                // Setup signal handlers for client handler process
+                signal(SIGTERM, clientSignalHandler);
+                signal(SIGINT, clientSignalHandler);
+                signal(SIGQUIT, clientSignalHandler);
+                signal(SIGHUP, clientSignalHandler);
+                signal(SIGPIPE, clientSignalHandler);
+                
                 char buffer[4096];
+                // bool normalExit = false;
+                
                 while (true) {
                     memset(buffer, 0, sizeof(buffer));
                     ssize_t bytes = recv(clientSock, buffer, sizeof(buffer) - 1, 0);
                     
                     if (bytes <= 0) {
+                        // Client disconnected
+                        if (bytes == 0) {
+                            Tintin_reporter::log(INFO, "Matt_daemon: Client disconnected normally from " + clientInfo);
+                            sendExitEmail("Client disconnected normally", clientInfo);
+                        } else {
+                            Tintin_reporter::log(ERROR, "Matt_daemon: Client connection error from " + clientInfo);
+                            sendExitEmail("Client connection error (recv failed)", clientInfo);
+                        }
                         break;
                     }
                     
@@ -239,7 +321,9 @@ int main() {
                     
                     if (!msg.empty()) {
                         if (msg == "quit") {
-                            Tintin_reporter::log(INFO, "Matt_daemon: Request quit.");
+                            Tintin_reporter::log(INFO, "Matt_daemon: Request quit from " + clientInfo);
+                            sendExitEmail("Client sent 'quit' command", clientInfo);
+                            // normalExit = true;
                             close(clientSock);
                             // Signal parent to quit
                             kill(getppid(), SIGTERM);
@@ -256,6 +340,7 @@ int main() {
                 // Parent process
                 close(clientSock);
                 activeClients++;
+                Tintin_reporter::log(INFO, "Matt_daemon: Client connected from " + clientInfo);
             }
         }
         
