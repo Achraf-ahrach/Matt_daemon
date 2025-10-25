@@ -1,5 +1,5 @@
 NAME = MattDaemon
-CLIENT_NAME = MattDaemonClient
+CLIENT_NAME = matt_daemon_client
 
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++11 -Iinclude -fPIC
@@ -24,7 +24,6 @@ QT_LINK = $(QT_FRAMEWORKS) \
 
 SRC_DIR = src
 OBJ_DIR = obj
-BIN_DIR = bin
 INC_DIR = include
 
 DAEMON_SRCS = $(SRC_DIR)/main.cpp \
@@ -33,7 +32,8 @@ DAEMON_SRCS = $(SRC_DIR)/main.cpp \
               $(SRC_DIR)/Client.cpp \
               $(SRC_DIR)/Utils.cpp \
               $(SRC_DIR)/Tintin_reporter.cpp \
-              $(SRC_DIR)/ShellCommands.cpp
+              $(SRC_DIR)/ShellCommands.cpp \
+              $(SRC_DIR)/Auth.cpp
 
 GUI_SRCS = $(SRC_DIR)/gui_main.cpp \
            $(SRC_DIR)/GUI.cpp \
@@ -44,11 +44,11 @@ GUI_OBJS = $(GUI_SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 all: $(NAME)
 
-$(NAME): $(DAEMON_OBJS) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(DAEMON_OBJS) -o $(BIN_DIR)/$@
+$(NAME): $(DAEMON_OBJS)
+	$(CXX) $(CXXFLAGS) $(DAEMON_OBJS) -o $@
 
-$(CLIENT_NAME): $(GUI_OBJS) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(GUI_OBJS) -o $(BIN_DIR)/$@ $(QT_LINK)
+$(CLIENT_NAME): $(GUI_OBJS)
+	$(CXX) $(CXXFLAGS) $(GUI_OBJS) -o $@ $(QT_LINK)
 
 # Rule for moc files
 $(OBJ_DIR)/moc_%.cpp: $(INC_DIR)/%.hpp | $(OBJ_DIR)
@@ -68,14 +68,11 @@ $(OBJ_DIR)/moc_GUI.o: $(OBJ_DIR)/moc_GUI.cpp | $(OBJ_DIR)
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
-$(BIN_DIR):
-	@mkdir -p $(BIN_DIR)
-
 clean:
 	rm -rf $(OBJ_DIR)
 
 fclean: clean
-	rm -rf $(BIN_DIR)
+	rm -f $(NAME) $(CLIENT_NAME)
 
 client: $(CLIENT_NAME)
 

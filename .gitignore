@@ -1,5 +1,6 @@
 # Binaries
 Matt_daemon
+MattDaemon
 bin/
 *.out
 *.o

@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include "Auth.hpp"
 #include "Utils.hpp"
 #include "Tintin_reporter.hpp"
 #include "ShellCommands.hpp"
@@ -36,6 +37,7 @@ void Client::setupSignalHandlers() {
 void Client::handleClient(int clientSock, const std::string& clientInfo) {
     setupSignalHandlers();
     
+    Auth auth;
     char buffer[4096];
     std::string currentDir;
     
@@ -47,11 +49,82 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
         currentDir = "/";
     }
     
+    // Send login banner
+    std::stringstream loginBanner;
+    loginBanner << "\n";
+    loginBanner << "========================================\n";
+    loginBanner << "  Matt_daemon Remote Shell \n";
+    loginBanner << "========================================\n";
+    loginBanner << "Please login to continue.\n";
+    loginBanner << "========================================\n\n";
+    send(clientSock, loginBanner.str().c_str(), loginBanner.str().length(), MSG_NOSIGNAL);
+    
+    // Authentication loop
+    bool authenticated = false;
+    int attempts = 0;
+    const int maxAttempts = 3;
+    
+    while (!authenticated && attempts < maxAttempts) {
+        // Ask for username
+        const char* usernamePrompt = "Username: ";
+        send(clientSock, usernamePrompt, strlen(usernamePrompt), MSG_NOSIGNAL);
+        
+        memset(buffer, 0, sizeof(buffer));
+        ssize_t bytes = recv(clientSock, buffer, sizeof(buffer) - 1, 0);
+        if (bytes <= 0) {
+            Tintin_reporter::log(INFO, "Matt_daemon: Client disconnected during login from " + clientInfo);
+            close(clientSock);
+            exit(0);
+        }
+        
+        std::string username(buffer, bytes);
+        username.erase(std::remove(username.begin(), username.end(), '\n'), username.end());
+        username.erase(std::remove(username.begin(), username.end(), '\r'), username.end());
+        
+        // Ask for password
+        const char* passwordPrompt = "Password: ";
+        send(clientSock, passwordPrompt, strlen(passwordPrompt), MSG_NOSIGNAL);
+        
+        memset(buffer, 0, sizeof(buffer));
+        bytes = recv(clientSock, buffer, sizeof(buffer) - 1, 0);
+        if (bytes <= 0) {
+            Tintin_reporter::log(INFO, "Matt_daemon: Client disconnected during login from " + clientInfo);
+            close(clientSock);
+            exit(0);
+        }
+        
+        std::string password(buffer, bytes);
+        password.erase(std::remove(password.begin(), password.end(), '\n'), password.end());
+        password.erase(std::remove(password.begin(), password.end(), '\r'), password.end());
+        
+        // Authenticate
+        if (auth.authenticate(username, password)) {
+            authenticated = true;
+            const char* successMsg = "\n✓ Login successful!\n\n";
+            send(clientSock, successMsg, strlen(successMsg), MSG_NOSIGNAL);
+            Tintin_reporter::log(INFO, "Matt_daemon: Client authenticated successfully from " + clientInfo);
+        } else {
+            attempts++;
+            std::stringstream failMsg;
+            failMsg << "\n✗ Authentication failed. ";
+            if (attempts < maxAttempts) {
+                failMsg << "Attempt " << attempts << "/" << maxAttempts << "\n\n";
+            }
+            send(clientSock, failMsg.str().c_str(), failMsg.str().length(), MSG_NOSIGNAL);
+            Tintin_reporter::log(INFO, "Matt_daemon: Failed login attempt from " + clientInfo + " (attempt " + std::to_string(attempts) + ")");
+        }
+    }
+    
+    if (!authenticated) {
+        const char* kickMsg = "\nMaximum login attempts exceeded. Connection closed.\n";
+        send(clientSock, kickMsg, strlen(kickMsg), MSG_NOSIGNAL);
+        Tintin_reporter::log(INFO, "Matt_daemon: Client kicked due to failed login attempts from " + clientInfo);
+        close(clientSock);
+        exit(0);
+    }
+    
     // Send welcome message and prompt
     std::stringstream welcome;
-    welcome << "\n";
-    welcome << "========================================\n";
-    welcome << "  Matt_daemon Remote Shell \n";
     welcome << "========================================\n";
     welcome << "Type 'help' for available commands.\n";
     welcome << "========================================\n\n";
