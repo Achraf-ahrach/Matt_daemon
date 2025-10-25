@@ -8,7 +8,7 @@
 #include <QtGui/QKeyEvent>
 
 MattDaemonGUI::MattDaemonGUI(QWidget *parent)
-    : QMainWindow(parent), isConnected(false) {
+    : QMainWindow(parent), isConnected(false), isAuthenticated(false), waitingForPassword(false) {
     setWindowTitle("MattDaemon Client");
     setMinimumSize(800, 600);
     
@@ -47,14 +47,18 @@ void MattDaemonGUI::setupUI() {
     // Create log display
     logDisplay = new QTextEdit(this);
     logDisplay->setReadOnly(true);
-    logDisplay->setFont(QFont("Monospace", 10));
+    QFont monoFont;
+    monoFont.setFamily("Monaco");
+    monoFont.setStyleHint(QFont::Monospace);
+    monoFont.setPointSize(10);
+    logDisplay->setFont(monoFont);
     logDisplay->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
     
     // Create input area
     QHBoxLayout *inputLayout = new QHBoxLayout();
     commandInput = new QLineEdit(this);
     commandInput->setPlaceholderText("Enter command...");
-    commandInput->setFont(QFont("Monospace", 10));
+    commandInput->setFont(monoFont);
     
     // Create buttons
     connectButton = new QPushButton("Connect", this);
@@ -136,8 +140,50 @@ void MattDaemonGUI::readResponse() {
     while (tcpSocket->canReadLine()) {
         QByteArray response = tcpSocket->readLine().trimmed();
         if (!response.isEmpty()) {
-            logMessage("<< " + QString::fromUtf8(response));
+            QString responseStr = QString::fromUtf8(response);
+            logMessage("<< " + responseStr);
+            
+            // Handle authentication prompts
+            if (!isAuthenticated) {
+                handleAuthentication(responseStr);
+            }
         }
+    }
+}
+
+void MattDaemonGUI::handleAuthentication(const QString &response) {
+    // Check for username prompt
+    if (response.contains("Username:", Qt::CaseInsensitive)) {
+        // Send username (default: admin)
+        QByteArray username = "admin\n";
+        tcpSocket->write(username);
+        logMessage(">> admin");
+        return;
+    }
+    
+    // Check for password prompt
+    if (response.contains("Password:", Qt::CaseInsensitive)) {
+        // Send password (default: admin)
+        QByteArray password = "admin\n";
+        tcpSocket->write(password);
+        logMessage(">> ****"); // Don't show actual password
+        return;
+    }
+    
+    // Check for successful authentication
+    if (response.contains("Login successful", Qt::CaseInsensitive) || 
+        response.contains("✓", Qt::CaseInsensitive)) {
+        isAuthenticated = true;
+        logMessage("Authentication successful!");
+        commandInput->setPlaceholderText("Enter command (type 'help' for available commands)...");
+        return;
+    }
+    
+    // Check for failed authentication
+    if (response.contains("Authentication failed", Qt::CaseInsensitive) || 
+        response.contains("✗", Qt::CaseInsensitive)) {
+        logMessage("Authentication failed. Please check credentials.");
+        return;
     }
 }
 
@@ -164,11 +210,15 @@ void MattDaemonGUI::displayError(QAbstractSocket::SocketError socketError) {
 void MattDaemonGUI::connectionEstablished() {
     logMessage("Connected to MattDaemon server.");
     setConnectedState(true);
+    isAuthenticated = false;
+    waitingForPassword = false;
 }
 
 void MattDaemonGUI::connectionClosed() {
     logMessage("Disconnected from server.");
     setConnectedState(false);
+    isAuthenticated = false;
+    waitingForPassword = false;
 }
 
 void MattDaemonGUI::logMessage(const QString &message) {

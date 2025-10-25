@@ -31,6 +31,7 @@ private:
     void setupUI();
     void logMessage(const QString &message);
     void setConnectedState(bool connected);
+    void handleAuthentication(const QString &response);
 
     QTcpSocket *tcpSocket;
     QTextEdit *logDisplay;
@@ -40,6 +41,9 @@ private:
     QPushButton *sendButton;
     QStatusBar *statusBar;
     bool isConnected;
+    bool isAuthenticated;
+    bool waitingForPassword;
+    QString pendingResponse;
 };
 
 #endif // GUI_HPP

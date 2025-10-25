@@ -39,8 +39,11 @@ GUI_SRCS = $(SRC_DIR)/gui_main.cpp \
            $(SRC_DIR)/GUI.cpp \
            $(OBJ_DIR)/moc_GUI.cpp
 
+# GUI also needs Tintin_reporter for logging
+GUI_DEPS = $(SRC_DIR)/Tintin_reporter.cpp
+
 DAEMON_OBJS = $(DAEMON_SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
-GUI_OBJS = $(GUI_SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+GUI_OBJS = $(GUI_SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o) $(GUI_DEPS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 all: $(NAME)
 
@@ -58,7 +61,7 @@ $(OBJ_DIR)/moc_%.cpp: $(INC_DIR)/%.hpp | $(OBJ_DIR)
 # Rule for C++ files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(QT_HEADERS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(QT_INCLUDES) -c $< -o $@
 
 # Rule for moc-generated C++ files
 $(OBJ_DIR)/moc_GUI.o: $(OBJ_DIR)/moc_GUI.cpp | $(OBJ_DIR)
