@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 #include "Tintin_reporter.hpp"
 #include "ShellCommands.hpp"
+#include "Daemon.hpp"
 #include <unistd.h>
 #include <signal.h>
 #include <sys/socket.h>
@@ -143,8 +144,13 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
                 Tintin_reporter::log(INFO, "Matt_daemon: Client disconnected normally from " + clientInfo);
                 Utils::sendExitEmail("Client disconnected normally", clientInfo);
             } else {
-                Tintin_reporter::log(ERROR, "Matt_daemon: Client connection error from " + clientInfo);
-                Utils::sendExitEmail("Client connection error (recv failed)", clientInfo);
+                // Check if daemon is shutting down
+                if (!running) {
+                    Tintin_reporter::log(INFO, "Matt_daemon: Client disconnected (daemon shutting down) from " + clientInfo);
+                } else {
+                    Tintin_reporter::log(ERROR, "Matt_daemon: Client connection error from " + clientInfo);
+                    Utils::sendExitEmail("Client connection error (recv failed)", clientInfo);
+                }
             }
             break;
         }

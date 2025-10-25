@@ -46,9 +46,31 @@ void Daemon::signalHandler(int sig) {
 }
 
 void Daemon::setupSignalHandlers() {
-    signal(SIGTERM, signalHandler);
+    signal(SIGHUP, signalHandler);
     signal(SIGINT, signalHandler);
     signal(SIGQUIT, signalHandler);
+    signal(SIGILL, signalHandler);
+    signal(SIGTRAP, signalHandler);
+    signal(SIGABRT, signalHandler);
+    signal(SIGFPE, signalHandler);
+    signal(SIGBUS, signalHandler);
+    signal(SIGSEGV, signalHandler);
+    signal(SIGSYS, signalHandler);
+    signal(SIGPIPE, signalHandler);
+    signal(SIGALRM, signalHandler);
+    signal(SIGTERM, signalHandler);
+    signal(SIGURG, signalHandler);
+    signal(SIGTSTP, signalHandler);
+    signal(SIGCONT, signalHandler);
+    signal(SIGCHLD, signalHandler);
+    signal(SIGTTIN, signalHandler);
+    signal(SIGTTOU, signalHandler);
+    signal(SIGIO, signalHandler);
+    signal(SIGXCPU, signalHandler);
+    signal(SIGXFSZ, signalHandler);
+    signal(SIGVTALRM, signalHandler);
+    signal(SIGPROF, signalHandler);
+    signal(SIGWINCH, signalHandler);
     signal(SIGUSR1, signalHandler);
     signal(SIGUSR2, signalHandler);
 }

@@ -58,12 +58,12 @@ void Utils::sendExitEmail(const std::string& reason, const std::string& clientIn
 bool Utils::createLockFile(int& lockFd) {
     lockFd = open(LOCK_FILE, O_CREAT | O_RDWR, 0644);
     if (lockFd < 0) {
-        Tintin_reporter::log(ERROR, "Matt_daemon: Error file locked.");
+        Tintin_reporter::log(ERROR, "Matt_daemon: Error opening lock file.");
         return false;
     }
     
     if (flock(lockFd, LOCK_EX | LOCK_NB) < 0) {
-        Tintin_reporter::log(ERROR, "Matt_daemon: Error file locked.");
+        Tintin_reporter::log(ERROR, "Matt_daemon: Instance already running.");
         close(lockFd);
         lockFd = -1;
         return false;

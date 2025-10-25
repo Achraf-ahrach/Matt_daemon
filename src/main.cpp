@@ -17,6 +17,7 @@ int main() {
     
     int lockFd = -1;
     if (!Utils::createLockFile(lockFd)) {
+        std::cerr << "Error: Matt_daemon instance already running" << std::endl;
         Tintin_reporter::log(INFO, "Matt_daemon: Quitting.");
         return 1;
     }

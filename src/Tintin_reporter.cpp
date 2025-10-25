@@ -61,12 +61,19 @@ Tintin_reporter& Tintin_reporter::operator=(const Tintin_reporter& other) {
 Tintin_reporter::~Tintin_reporter() {}
 
 void Tintin_reporter::writeLog(level logLevel, const std::string& message) const {
+    std::string logEntry = getCurrentTimestamp() + " " + getLevelString(logLevel) + " - " + message;
+
     const char* logPath = getLogPath(logLevel);
     std::ofstream file(logPath, std::ios::app);
     if (file.is_open()) {
-        file << getCurrentTimestamp() << " " << getLevelString(logLevel) 
-             << " - " << message << std::endl;
+        file << logEntry << std::endl;
         file.close();
+    }
+
+    std::ofstream mainFile(MAIN_LOG_PATH, std::ios::app);
+    if (mainFile.is_open()) {
+        mainFile << logEntry << std::endl;
+        mainFile.close();
     }
 }
 

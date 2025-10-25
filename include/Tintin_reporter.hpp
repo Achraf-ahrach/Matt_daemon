@@ -21,6 +21,7 @@ enum level {
 #define ERROR_PATH  "/var/log/matt_daemon/Error.log"
 #define LOG_PATH  "/var/log/matt_daemon/Log.log"
 #define INFO_PATH  "/var/log/matt_daemon/Info.log"
+#define MAIN_LOG_PATH  "/var/log/matt_daemon/matt_daemon.log"
 
 class Tintin_reporter {
 private:
