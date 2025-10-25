@@ -61,7 +61,8 @@ std::string cmdHelp() {
     ss << "  pwd                  - Print working directory\n";
     ss << "  cd <path>            - Change directory\n";
     ss << "  echo <text>          - Display a line of text\n";
-    ss << "  clear                - Clear the screen\n\n";
+    ss << "  clear                - Clear the screen\n";
+    ss << "  quit                 - Exit the client connection\n\n";
     ss << "Note: All commands are executed in the daemon's context.\n";
     ss << "======================================================\n";
     return ss.str();

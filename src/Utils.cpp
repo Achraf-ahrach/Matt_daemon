@@ -14,8 +14,7 @@ void Utils::sendExitEmail(const std::string& reason, const std::string& clientIn
     const char* emailTo   = EMAIL_TO;
 
     std::time_t now = std::time(nullptr);
-    now += 3600; // add +1 hour (for local time adjustment)
-
+    
     char timestamp[100];
     std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
     
