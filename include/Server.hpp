@@ -15,6 +15,7 @@ public:
     
     bool initialize();
     void run();
+    void setLockFd(int fd) { lockFd = fd; }
     int getSocket() const { return serverSocket; }
     int getLockFd() const { return lockFd; }
 };

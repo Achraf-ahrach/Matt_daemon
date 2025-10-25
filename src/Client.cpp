@@ -42,7 +42,6 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
     char buffer[4096];
     std::string currentDir;
     
-    // Initialize current directory to daemon's working directory
     char cwd[4096];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         currentDir = cwd;
@@ -50,7 +49,6 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
         currentDir = "/";
     }
     
-    // Send login banner
     std::stringstream loginBanner;
     loginBanner << "\n";
     loginBanner << "========================================\n";
@@ -60,13 +58,11 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
     loginBanner << "========================================\n\n";
     send(clientSock, loginBanner.str().c_str(), loginBanner.str().length(), MSG_NOSIGNAL);
     
-    // Authentication loop
     bool authenticated = false;
     int attempts = 0;
     const int maxAttempts = 3;
     
     while (!authenticated && attempts < maxAttempts) {
-        // Ask for username
         const char* usernamePrompt = "Username: ";
         send(clientSock, usernamePrompt, strlen(usernamePrompt), MSG_NOSIGNAL);
         
@@ -82,7 +78,6 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
         username.erase(std::remove(username.begin(), username.end(), '\n'), username.end());
         username.erase(std::remove(username.begin(), username.end(), '\r'), username.end());
         
-        // Ask for password
         const char* passwordPrompt = "Password: ";
         send(clientSock, passwordPrompt, strlen(passwordPrompt), MSG_NOSIGNAL);
         
@@ -98,7 +93,6 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
         password.erase(std::remove(password.begin(), password.end(), '\n'), password.end());
         password.erase(std::remove(password.begin(), password.end(), '\r'), password.end());
         
-        // Authenticate
         if (auth.authenticate(username, password)) {
             authenticated = true;
             const char* successMsg = "\n✓ Login successful!\n\n";
@@ -124,14 +118,12 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
         exit(0);
     }
     
-    // Send welcome message and prompt
     std::stringstream welcome;
     welcome << "========================================\n";
     welcome << "Type 'help' for available commands.\n";
     welcome << "========================================\n\n";
     send(clientSock, welcome.str().c_str(), welcome.str().length(), MSG_NOSIGNAL);
     
-    // Send initial prompt with colored "matt_daemon"
     std::string prompt = "\033[1;36mmatt_daemon\033[0m:" + currentDir + "$ ";
     send(clientSock, prompt.c_str(), prompt.length(), MSG_NOSIGNAL);
     
@@ -144,7 +136,6 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
                 Tintin_reporter::log(INFO, "Matt_daemon: Client disconnected normally from " + clientInfo);
                 Utils::sendExitEmail("Client disconnected normally", clientInfo);
             } else {
-                // Check if daemon is shutting down
                 if (!running) {
                     Tintin_reporter::log(INFO, "Matt_daemon: Client disconnected (daemon shutting down) from " + clientInfo);
                 } else {
@@ -160,7 +151,6 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
         msg.erase(std::remove(msg.begin(), msg.end(), '\r'), msg.end());
         
         if (!msg.empty()) {
-            // Check for quit command
             if (msg == "quit") {
                 const char* quitMsg = "\nGoodbye!\n";
                 send(clientSock, quitMsg, strlen(quitMsg), MSG_NOSIGNAL);
@@ -168,22 +158,17 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
                 break;
             }
             
-            // Log the user input
             Tintin_reporter::log(LOG, "Matt_daemon: User input: " + msg);
             
-            // Execute the shell command
             std::string response = ShellCommands::executeCommand(msg, currentDir);
             
-            // Send response to client
             if (!response.empty()) {
                 send(clientSock, response.c_str(), response.length(), MSG_NOSIGNAL);
             }
             
-            // Send new prompt with updated directory (colored "matt_daemon")
             prompt = "\033[1;36mmatt_daemon\033[0m:" + currentDir + "$ ";
             send(clientSock, prompt.c_str(), prompt.length(), MSG_NOSIGNAL);
         } else {
-            // Empty command, just send prompt again (colored "matt_daemon")
             prompt = "\033[1;36mmatt_daemon\033[0m:" + currentDir + "$ ";
             send(clientSock, prompt.c_str(), prompt.length(), MSG_NOSIGNAL);
         }

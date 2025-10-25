@@ -12,13 +12,10 @@ MattDaemonGUI::MattDaemonGUI(QWidget *parent)
     setWindowTitle("MattDaemon Client");
     setMinimumSize(800, 600);
     
-    // Initialize TCP socket
     tcpSocket = new QTcpSocket(this);
     
-    // Setup UI
     setupUI();
     
-    // Connect signals and slots
     connect(connectButton, &QPushButton::clicked, this, &MattDaemonGUI::connectToServer);
     connect(disconnectButton, &QPushButton::clicked, this, &MattDaemonGUI::disconnectFromServer);
     connect(sendButton, &QPushButton::clicked, this, &MattDaemonGUI::sendCommand);
@@ -29,7 +26,6 @@ MattDaemonGUI::MattDaemonGUI(QWidget *parent)
     connect(tcpSocket, &QTcpSocket::connected, this, &MattDaemonGUI::connectionEstablished);
     connect(tcpSocket, &QTcpSocket::disconnected, this, &MattDaemonGUI::connectionClosed);
     
-    // Set initial state
     setConnectedState(false);
     logMessage("MattDaemon Client started. Click 'Connect' to connect to the server.");
 }
@@ -40,11 +36,9 @@ MattDaemonGUI::~MattDaemonGUI() {
 }
 
 void MattDaemonGUI::setupUI() {
-    // Create central widget and layout
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
     
-    // Create log display
     logDisplay = new QTextEdit(this);
     logDisplay->setReadOnly(true);
     QFont monoFont;
@@ -54,42 +48,34 @@ void MattDaemonGUI::setupUI() {
     logDisplay->setFont(monoFont);
     logDisplay->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
     
-    // Create input area
     QHBoxLayout *inputLayout = new QHBoxLayout();
     commandInput = new QLineEdit(this);
     commandInput->setPlaceholderText("Enter command...");
     commandInput->setFont(monoFont);
     
-    // Create buttons
     connectButton = new QPushButton("Connect", this);
     disconnectButton = new QPushButton("Disconnect", this);
     sendButton = new QPushButton("Send", this);
     
-    // Style buttons
     QString buttonStyle = "QPushButton { padding: 5px 15px; min-width: 80px; } ";
     connectButton->setStyleSheet(buttonStyle + "background-color: #4CAF50; color: white;");
     disconnectButton->setStyleSheet(buttonStyle + "background-color: #f44336; color: white;");
     sendButton->setStyleSheet(buttonStyle + "background-color: #2196F3; color: white;");
     
-    // Add widgets to input layout
     inputLayout->addWidget(commandInput);
     inputLayout->addWidget(sendButton);
     
-    // Create button layout
     QHBoxLayout *buttonLayout = new QHBoxLayout();
     buttonLayout->addWidget(connectButton);
     buttonLayout->addWidget(disconnectButton);
     buttonLayout->addStretch();
     
-    // Add widgets to main layout
     mainLayout->addWidget(logDisplay);
     mainLayout->addLayout(buttonLayout);
     mainLayout->addLayout(inputLayout);
     
-    // Set central widget
     setCentralWidget(centralWidget);
     
-    // Create status bar
     statusBar = new QStatusBar(this);
     setStatusBar(statusBar);
     statusBar->showMessage("Not connected");
@@ -125,14 +111,11 @@ void MattDaemonGUI::sendCommand() {
     if (command.isEmpty())
         return;
     
-    // Log the command
     logMessage(">> " + command);
     
-    // Send the command to the server
     QByteArray data = (command + "\n").toUtf8();
     tcpSocket->write(data);
     
-    // Clear the input field
     commandInput->clear();
 }
 
@@ -143,7 +126,6 @@ void MattDaemonGUI::readResponse() {
             QString responseStr = QString::fromUtf8(response);
             logMessage("<< " + responseStr);
             
-            // Handle authentication prompts
             if (!isAuthenticated) {
                 handleAuthentication(responseStr);
             }
@@ -152,25 +134,20 @@ void MattDaemonGUI::readResponse() {
 }
 
 void MattDaemonGUI::handleAuthentication(const QString &response) {
-    // Check for username prompt
     if (response.contains("Username:", Qt::CaseInsensitive)) {
-        // Send username (default: admin)
         QByteArray username = "admin\n";
         tcpSocket->write(username);
         logMessage(">> admin");
         return;
     }
     
-    // Check for password prompt
     if (response.contains("Password:", Qt::CaseInsensitive)) {
-        // Send password (default: admin)
         QByteArray password = "admin\n";
         tcpSocket->write(password);
-        logMessage(">> ****"); // Don't show actual password
+        logMessage(">> ****");
         return;
     }
     
-    // Check for successful authentication
     if (response.contains("Login successful", Qt::CaseInsensitive) || 
         response.contains("✓", Qt::CaseInsensitive)) {
         isAuthenticated = true;
@@ -179,7 +156,6 @@ void MattDaemonGUI::handleAuthentication(const QString &response) {
         return;
     }
     
-    // Check for failed authentication
     if (response.contains("Authentication failed", Qt::CaseInsensitive) || 
         response.contains("✗", Qt::CaseInsensitive)) {
         logMessage("Authentication failed. Please check credentials.");
@@ -225,13 +201,10 @@ void MattDaemonGUI::logMessage(const QString &message) {
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
     QString logEntry = QString("[%1] %2").arg(timestamp, message);
     
-    // Display in the GUI
     logDisplay->append(logEntry);
     
-    // Log using Tintin_reporter to match daemon logging
     Tintin_reporter::log(LOG, logEntry.toStdString());
     
-    // Auto-scroll to bottom
     QScrollBar *sb = logDisplay->verticalScrollBar();
     sb->setValue(sb->maximum());
 }

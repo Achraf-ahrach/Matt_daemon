@@ -37,6 +37,8 @@ int main() {
         std::string pidStr = std::to_string(getpid()) + "\n";
         write(lockFd, pidStr.c_str(), pidStr.length());
     }
+
+    server.setLockFd(lockFd);
     
     std::stringstream ss;
     ss << "Matt_daemon: started. PID: " << getpid() << ".";
@@ -44,6 +46,6 @@ int main() {
     
     Daemon::setupSignalHandlers();
     server.run();
-    
+
     return 0;
 }

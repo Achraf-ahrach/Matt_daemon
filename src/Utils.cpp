@@ -80,6 +80,7 @@ void Utils::cleanup(int serverSocket, int lockFd) {
         close(serverSocket);
     }
     if (lockFd >= 0) {
+        flock(lockFd, LOCK_UN);
         close(lockFd);
         unlink(LOCK_FILE);
     }
