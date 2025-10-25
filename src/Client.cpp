@@ -154,6 +154,14 @@ void Client::handleClient(int clientSock, const std::string& clientInfo) {
         msg.erase(std::remove(msg.begin(), msg.end(), '\r'), msg.end());
         
         if (!msg.empty()) {
+            // Check for quit command
+            if (msg == "quit") {
+                const char* quitMsg = "\nGoodbye!\n";
+                send(clientSock, quitMsg, strlen(quitMsg), MSG_NOSIGNAL);
+                Tintin_reporter::log(INFO, "Matt_daemon: Client quit from " + clientInfo);
+                break;
+            }
+            
             // Log the user input
             Tintin_reporter::log(LOG, "Matt_daemon: User input: " + msg);
             
